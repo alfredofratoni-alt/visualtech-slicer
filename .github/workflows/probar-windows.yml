@@ -1,0 +1,78 @@
+name: Probar Visualtech Slicer (capturas)
+
+# Abre la última versión compilada en una máquina Windows de GitHub,
+# saca capturas de pantalla y las guarda en la rama "capturas".
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  probar:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Buscar la última compilación correcta
+        id: run
+        shell: bash
+        run: |
+          id=$(gh run list -R "$GITHUB_REPOSITORY" -w compilar-windows.yml -s success -L 1 --json databaseId -q '.[0].databaseId')
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Bajar la versión portable
+        uses: actions/download-artifact@v4
+        with:
+          name: VisualtechSlicer-portable-Windows
+          path: app
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+
+      - name: Agregar OpenGL por software (la máquina no tiene placa de video)
+        shell: bash
+        run: |
+          gh release download -R pal1000/mesa-dist-win -p "mesa3d-*-release-msvc.7z" -O mesa.7z
+          7z x -y -omesa mesa.7z > /dev/null
+          cp mesa/x64/*.dll app/
+
+      - name: Abrir el programa y sacar capturas
+        shell: pwsh
+        env:
+          GALLIUM_DRIVER: llvmpipe
+          MESA_GL_VERSION_OVERRIDE: "4.5"
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          function Shot($name) {
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bmp.Save("$PWD\capturas\$name.png", [System.Drawing.Imaging.ImageFormat]::Png)
+            $g.Dispose(); $bmp.Dispose()
+          }
+          New-Item -ItemType Directory -Force capturas | Out-Null
+          $exe = Get-ChildItem app -Recurse -Filter orca-slicer.exe | Select-Object -First 1
+          Start-Process $exe.FullName
+          foreach ($t in 5, 15, 40, 80, 120) {
+            Start-Sleep -Seconds ($t - $(if ($last) { $last } else { 0 }))
+            $last = $t
+            Shot ("{0:D3}s" -f $t)
+          }
+          Get-Process | Where-Object { $_.ProcessName -like "orca*" } | Format-Table ProcessName, Id, MainWindowTitle | Out-String | Set-Content capturas\procesos.txt
+          $logs = Join-Path $env:APPDATA "OrcaSlicer\log"
+          if (Test-Path $logs) { Copy-Item "$logs\*" capturas\ -ErrorAction SilentlyContinue }
+
+      - name: Guardar capturas en la rama "capturas"
+        if: always()
+        shell: bash
+        run: |
+          cd capturas
+          git init -q -b capturas
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Capturas de prueba ${{ github.run_id }}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" capturas
