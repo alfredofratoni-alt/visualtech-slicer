@@ -4,6 +4,10 @@ name: Compilar Visualtech Slicer (Windows)
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/workflows/probar-windows.yml'
+      - 'README.md'
+      - 'branding/previews/**'
   workflow_dispatch:
 
 concurrency:
