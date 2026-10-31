@@ -53,6 +53,17 @@ edit("src/libslic3r/libslic3r.h", [('#define SLIC3R_APP_FULL_NAME "Orca Slicer"'
                                     f'#define SLIC3R_APP_FULL_NAME "{APP_NAME}"')])
 edit("src/slic3r/GUI/GUI_App.cpp", [('std::wstring prog_desc = L"OrcaSlicer";',
                                      f'std::wstring prog_desc = L"{APP_NAME}";')])
+# Título de la ventana (barra de tareas) e ícono de bandeja
+edit("src/slic3r/GUI/Plater.cpp", [('m_project_name + " - OrcaSlicer"', f'm_project_name + " - {APP_NAME}"')])
+edit("src/slic3r/GUI/MainFrame.cpp", [('wxBITMAP_TYPE_ICO), "OrcaSlicer")', f'wxBITMAP_TYPE_ICO), "{APP_NAME}")')])
+
+# Asistente de bienvenida y página de inicio (HTML): nombre del programa.
+# "Orca Cloud" y las menciones a OrcaSlicer como autor de plugins se dejan, porque son correctas.
+for f in list((ORCA / "resources" / "web").rglob("*.js")) + list((ORCA / "resources" / "web").rglob("*.html")):
+    text = f.read_text(encoding="utf-8")
+    new = text.replace("Orca Slicer", APP_NAME)
+    if new != text:
+        f.write_text(new, encoding="utf-8")
 
 # 2. Instalador de Windows ----------------------------------------------------
 edit("CMakeLists.txt", [
@@ -101,6 +112,14 @@ for src, targets in IMAGES.items():
         if not (img_dir / t).exists():
             problems.append(f"falta la imagen original {t}")
         shutil.copyfile(ASSETS / src, img_dir / t)
+# Logos del asistente de bienvenida y de la página de inicio
+web_img = ORCA / "resources" / "web" / "image"
+shutil.copyfile(ASSETS / "icon_154.png", web_img / "logo.png")
+from PIL import Image  # noqa: E402
+_icon = Image.open(ASSETS / "icon_1024.png").convert("RGBA").resize((339, 339), Image.LANCZOS)
+_logo2 = Image.new("RGBA", (339, 406), (0, 0, 0, 0))
+_logo2.paste(_icon, (0, 33), _icon)
+_logo2.save(web_img / "logo2.png")
 
 # 4. Color de acento ----------------------------------------------------------
 HEX = [  # (Orca, Visualtech)
@@ -111,6 +130,10 @@ HEX = [  # (Orca, Visualtech)
     ("#008172", "#FF7A2D"),  # hover en modo oscuro
     ("#4DB6AC", "#F7A072"),  # acento suave
     ("#3B4446", "#1E1F22"),  # barra superior -> grafito
+    ("#009789", "#F4732A"),
+    ("#BFE1DE", "#FDE6D8"),  # fondo de ítem seleccionado (naranja claro)
+    ("#E5F0EE", "#FEF1E8"),  # fondo suave
+    ("#223C3C", "#3A2416"),  # ítem seleccionado en modo oscuro
 ]
 GENERIC = [
     (r"0x009688\b", "0xF4732A"),
