@@ -54,7 +54,7 @@ edit("src/libslic3r/libslic3r.h", [('#define SLIC3R_APP_FULL_NAME "Orca Slicer"'
 edit("src/slic3r/GUI/GUI_App.cpp", [('std::wstring prog_desc = L"OrcaSlicer";',
                                      f'std::wstring prog_desc = L"{APP_NAME}";')])
 # Título de la ventana (barra de tareas) e ícono de bandeja
-edit("src/slic3r/GUI/Plater.cpp", [('m_project_name + " - OrcaSlicer"', f'm_project_name + " - {APP_NAME}"')])
+edit("src/slic3r/GUI/Plater.cpp", [('" - OrcaSlicer"', f'" - {APP_NAME}"')])
 edit("src/slic3r/GUI/MainFrame.cpp", [('wxBITMAP_TYPE_ICO), "OrcaSlicer")', f'wxBITMAP_TYPE_ICO), "{APP_NAME}")')])
 
 # Asistente de bienvenida y página de inicio (HTML): nombre del programa.
