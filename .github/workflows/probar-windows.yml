@@ -54,14 +54,17 @@ jobs:
             $g.Dispose(); $bmp.Dispose()
           }
           New-Item -ItemType Directory -Force capturas | Out-Null
-          $exe = Get-ChildItem app -Recurse -Filter orca-slicer.exe | Select-Object -First 1
-          Start-Process $exe.FullName
-          foreach ($t in 5, 15, 40, 80, 120) {
-            Start-Sleep -Seconds ($t - $(if ($last) { $last } else { 0 }))
-            $last = $t
-            Shot ("{0:D3}s" -f $t)
-          }
-          Get-Process | Where-Object { $_.ProcessName -like "orca*" } | Format-Table ProcessName, Id, MainWindowTitle | Out-String | Set-Content capturas\procesos.txt
+          $exe = Get-ChildItem app -Recurse -Filter "*-slicer.exe" | Select-Object -First 1
+          $model = Get-ChildItem app\resources -Recurse -Filter "*.stl" | Sort-Object Length | Select-Object -Last 1
+          "exe: $($exe.Name)  modelo: $($model.FullName)" | Set-Content capturas\info.txt
+          Start-Process $exe.FullName -ArgumentList "`"$($model.FullName)`""
+          Start-Sleep -Seconds 5;  Shot "1-inicio"
+          Start-Sleep -Seconds 40; Shot "2-asistente"
+          [System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+          Start-Sleep -Seconds 15; Shot "3-ventana-principal"
+          [System.Windows.Forms.SendKeys]::SendWait("{ESC}")
+          Start-Sleep -Seconds 25; Shot "4-ventana-principal-2"
+          Get-Process | Where-Object { $_.ProcessName -like "*slicer*" } | Format-Table ProcessName, Id, MainWindowTitle | Out-String | Set-Content capturas\procesos.txt
           $logs = Join-Path $env:APPDATA "OrcaSlicer\log"
           if (Test-Path $logs) { Copy-Item "$logs\*" capturas\ -ErrorAction SilentlyContinue }
 

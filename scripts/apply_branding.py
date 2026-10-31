@@ -15,6 +15,7 @@ Qué NO cambia (a propósito):
   - Los avisos de copyright y licencia de OrcaSlicer, PrusaSlicer y Bambu Studio,
     que la licencia AGPL-3.0 obliga a mantener.
 """
+import os
 import pathlib
 import re
 import shutil
@@ -134,7 +135,19 @@ HEX = [  # (Orca, Visualtech)
     ("#BFE1DE", "#FDE6D8"),  # fondo de ítem seleccionado (naranja claro)
     ("#E5F0EE", "#FEF1E8"),  # fondo suave
     ("#223C3C", "#3A2416"),  # ítem seleccionado en modo oscuro
+    # Grises de la guía Visualtech (modo claro). Valores distintos entre sí para no
+    # pisar entradas de la tabla claro -> oscuro.
+    ("#262E30", "#1F2023"),  # texto principal (tinta)
+    ("#6B6B6B", "#707478"),  # texto apagado
+    ("#6B6A6A", "#717579"),
+    ("#6B6B6A", "#707479"),
+    ("#DBDBDB", "#DCDEE1"),  # bordes de campos
+    ("#EEEEEE", "#E3E5E8"),  # líneas separadoras
+    ("#F8F8F8", "#F4F4F5"),  # fondos de paneles
+    ("#F1F1F1", "#F3F3F4"),
 ]
+# Las mismas equivalencias escritas como entero (0xRRGGBB) en el código
+HEX += [("0x" + a[1:], "0x" + b[1:]) for a, b in list(HEX)]
 GENERIC = [
     (r"0x009688\b", "0xF4732A"),
     (r"\b0,\s*150,\s*136\b", "244, 115, 42"),
@@ -172,9 +185,156 @@ edit("src/slic3r/GUI/Widgets/StateColor.cpp", [
     (r'\{"#1E1F22", "#[0-9A-Fa-f]{6}"\}', '{"#1E1F22", "#131415"}', "re"),   # barra superior
     (r'\{"#FFFFFF", "#[0-9A-Fa-f]{6}"\}', '{"#FFFFFF", "#1B1C1E"}', "re"),   # fondo de ventanas
     (r'\{"#FEFFFF", "#[0-9A-Fa-f]{6}"\}', '{"#FEFFFF", "#131415"}', "re"),   # barra lateral
-    (r'\{"#EEEEEE", "#[0-9A-Fa-f]{6}"\}', '{"#EEEEEE", "#2C2E32"}', "re"),   # líneas separadoras
-    (r'\{"#262E30", "#[0-9A-Fa-f]{6}"\}', '{"#262E30", "#F2F2F3"}', "re"),   # texto
+    (r'\{"#E3E5E8", "#[0-9A-Fa-f]{6}"\}', '{"#E3E5E8", "#2C2E32"}', "re"),   # líneas separadoras
+    (r'\{"#1F2023", "#[0-9A-Fa-f]{6}"\}', '{"#1F2023", "#F2F2F3"}', "re"),   # texto
+    (r'\{"#707478", "#[0-9A-Fa-f]{6}"\}', '{"#707478", "#9A9EA3"}', "re"),   # texto apagado
+    (r'\{"#DCDEE1", "#[0-9A-Fa-f]{6}"\}', '{"#DCDEE1", "#3A3C40"}', "re"),   # bordes de campos
 ])
+
+# 6. Tipografías Visualtech ---------------------------------------------------
+# Interfaz: Fira Sans. Títulos grandes: Montserrat ExtraBold itálica.
+FONTS = HERE / "branding" / "fonts"
+for f in ("FiraSans-Regular.ttf", "FiraSans-SemiBold.ttf", "FiraSans-Bold.ttf",
+          "FiraMono-Regular.ttf", "Montserrat-ExtraBoldItalic.ttf"):
+    shutil.copyfile(FONTS / f, ORCA / "resources" / "fonts" / f)
+edit("src/slic3r/GUI/Widgets/Label.cpp", [
+    ('wxString face = "HarmonyOS Sans SC";', 'wxString face = "Fira Sans";'),
+    ('!fc_font_available("HarmonyOS Sans SC")', '!fc_font_available("Fira Sans")'),
+    ('"/fonts/HarmonyOS_Sans_SC_Bold.ttf"', '"/fonts/FiraSans-Bold.ttf"'),
+    ('"/fonts/HarmonyOS_Sans_SC_Regular.ttf"', '"/fonts/FiraSans-Regular.ttf"'),
+    ('        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf"));',
+     '        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/Montserrat-ExtraBoldItalic.ttf"));\n'
+     '        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf"));'),
+    ('wxFont Label::Head_48;',
+     '// Visualtech: títulos grandes en Montserrat ExtraBold itálica\n'
+     'static wxFont vt_title_font(int size)\n'
+     '{\n'
+     '#ifndef __APPLE__\n'
+     '    size = size * 4 / 5;\n'
+     '#endif\n'
+     '    wxFont font{size, wxFONTFAMILY_SWISS, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_NORMAL, false, "Montserrat ExtraBold"};\n'
+     '    font.SetFaceName("Montserrat ExtraBold");\n'
+     '    return font;\n'
+     '}\n\n'
+     'wxFont Label::Head_48;'),
+    ('Head_48 = Label::sysFont(48, true);', 'Head_48 = vt_title_font(48);'),
+    ('Head_32 = Label::sysFont(32, true);', 'Head_32 = vt_title_font(32);'),
+    ('Head_24 = Label::sysFont(24, true);', 'Head_24 = vt_title_font(24);'),
+    ('Head_20 = Label::sysFont(20, true);', 'Head_20 = vt_title_font(20);'),
+])
+
+# Páginas web internas (bienvenida, inicio, diálogos): fuentes y estilo Visualtech
+web = ORCA / "resources" / "web"
+(web / "include" / "fonts").mkdir(parents=True, exist_ok=True)
+for f in ("FiraSans-Regular.ttf", "FiraSans-SemiBold.ttf", "FiraSans-Bold.ttf",
+          "FiraMono-Regular.ttf", "Montserrat-ExtraBoldItalic.ttf"):
+    shutil.copyfile(FONTS / f, web / "include" / "fonts" / f)
+shutil.copyfile(HERE / "branding" / "visualtech.css", web / "include" / "visualtech.css")
+for page in web.rglob("*.html"):
+    text = page.read_text(encoding="utf-8")
+    if "visualtech.css" in text or "</head>" not in text:
+        continue
+    rel = os.path.relpath(web / "include" / "visualtech.css", page.parent).replace(os.sep, "/")
+    page.write_text(text.replace("</head>", f'<link rel="stylesheet" href="{rel}" />\n</head>', 1),
+                    encoding="utf-8")
+
+# 7. Línea naranja de marca debajo de la barra superior ------------------------
+edit("src/slic3r/GUI/MainFrame.cpp", [
+    ('#ifndef __APPLE__\n     sizer->Add(m_topbar, 0, wxEXPAND);\n#else',
+     '#ifndef __APPLE__\n     sizer->Add(m_topbar, 0, wxEXPAND);\n'
+     '     {\n'
+     '         auto *vt_brand_line = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(2)));\n'
+     '         vt_brand_line->SetBackgroundColour(wxColour(244, 115, 42));\n'
+     '         sizer->Add(vt_brand_line, 0, wxEXPAND);\n'
+     '     }\n'
+     '#else'),
+])
+
+# 8. Textos: que no aparezca "Orca" en la interfaz -----------------------------
+# Se mantienen, porque la licencia AGPL lo exige o porque nombran servicios de terceros:
+#   - créditos y licencia de la ventana "Acerca de";
+#   - "Orca Cloud" (servicio en línea de OrcaSlicer, que además se oculta en la página de inicio);
+#   - nombres internos de perfiles (OrcaFilamentLibrary) y direcciones web.
+LEGAL = ("based on", "licensed under", "began in that same spirit", "most widely used",
+         "Copyright", "tradition of collaboration")
+PROTECT = ["Orca Cloud", "OrcaCloud", "OrcaFilamentLibrary", "orcaslicer.com",
+           "github.com/OrcaSlicer", "OrcaSlicer/OrcaSlicer"]
+RX_NAME = [
+    (re.compile(r"Orca Slicer"), APP_NAME),
+    (re.compile(r"OrcaSlicer(?![\w.\-/]\w)"), APP_NAME),
+    (re.compile(r"(?:(?<=\\n)|\b)Orca\b(?= (?:will|would|can|cannot|can't|is|has|does|uses|supports|may|might|needs)\b)"), APP_NAME),
+    (re.compile(r"\bOrca(?=\.(?!\w))"), APP_NAME),                       # "...starting Orca."
+    (re.compile(r"\bOrca (?=(?:Cube|String Hell|Tolerance Test)\b)"), "Visualtech "),  # pruebas de calibración
+]
+
+
+def rename(s):
+    if not s or "Orca" not in s or any(m in s for m in LEGAL) or "://" in s:
+        return s
+    keep = {}
+    for i, token in enumerate(PROTECT):
+        key = f"\x00{i}\x00"
+        if token in s:
+            s = s.replace(token, key)
+            keep[key] = token
+    for rx, rep in RX_NAME:
+        s = rx.sub(rep, s)
+    for key, token in keep.items():
+        s = s.replace(key, token)
+    return s
+
+
+# 8a. Código: solo cadenas traducibles (son las que ve el usuario)
+RX_TR = re.compile(r'\b(_L|_u8L|L|_utf8|_CTX|L_CONTEXT|_L_PLURAL)\(\s*"((?:[^"\\\n]|\\.)*)"')
+n_src = 0
+for ext in ("*.cpp", "*.hpp", "*.h"):
+    for f in (ORCA / "src").rglob(ext):
+        text = f.read_text(encoding="utf-8", errors="surrogateescape")
+        new = RX_TR.sub(lambda m: f'{m.group(1)}("{rename(m.group(2))}"', text)
+        if new != text:
+            f.write_text(new, encoding="utf-8", errors="surrogateescape")
+            n_src += 1
+
+# 8b. Traducciones: se cambia el texto original y la traducción por igual,
+#     así cada frase sigue encontrando su versión en castellano.
+import polib  # noqa: E402
+n_po = 0
+for po_path in (ORCA / "localization" / "i18n").glob("*/*.po"):
+    po = polib.pofile(str(po_path), wrapwidth=0)
+    touched = False
+    for e in po:
+        new_id = rename(e.msgid)
+        if new_id == e.msgid and "Orca" not in (e.msgstr or ""):
+            continue
+        if any(m in e.msgid for m in LEGAL):
+            continue
+        e.msgid = new_id
+        if e.msgid_plural:
+            e.msgid_plural = rename(e.msgid_plural)
+        e.msgstr = rename(e.msgstr)
+        for k in list(e.msgstr_plural):
+            e.msgstr_plural[k] = rename(e.msgstr_plural[k])
+        touched = True
+    if touched:
+        po.save(str(po_path))
+        n_po += 1
+
+# 8c. Páginas web y otros textos de interfaz
+for f in list(web.rglob("*.js")) + list(web.rglob("*.html")):
+    if "swiper" in f.name or "jquery" in f.name.lower():
+        continue
+    text = f.read_text(encoding="utf-8")
+    new = re.sub(r'"((?:[^"\\\n]|\\.)*)"', lambda m: '"' + rename(m.group(1)) + '"', text)
+    new = re.sub(r">([^<>]*)<", lambda m: ">" + rename(m.group(1)) + "<", new)
+    if new != text:
+        f.write_text(new, encoding="utf-8")
+
+# 9. Nombre del ejecutable: visualtech-slicer.exe ------------------------------
+for rel in ("CMakeLists.txt", "src/CMakeLists.txt", "src/OrcaSlicer.cpp",
+            "src/slic3r/Utils/Process.cpp", "src/slic3r/Utils/BBLNetworkPlugin.cpp"):
+    edit(rel, [('orca-slicer', 'visualtech-slicer')])
+
+print(f"Textos: {n_src} archivos de código y {n_po} traducciones actualizadas")
 
 print(f"Marca aplicada. Archivos con color modificado: {changed}")
 if problems:

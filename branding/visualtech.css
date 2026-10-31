@@ -1,0 +1,36 @@
+/* Identidad Gráfica Visualtech para las páginas internas de Visualtech Slicer */
+@font-face { font-family: "Fira Sans"; src: url("fonts/FiraSans-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "Fira Sans"; src: url("fonts/FiraSans-SemiBold.ttf"); font-weight: 500 600; }
+@font-face { font-family: "Fira Sans"; src: url("fonts/FiraSans-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: "Fira Mono"; src: url("fonts/FiraMono-Regular.ttf"); }
+@font-face { font-family: "VT Montserrat"; src: url("fonts/Montserrat-ExtraBoldItalic.ttf");
+             font-weight: 800; font-style: italic; }
+
+:root { --vt-accent: #f4732a; --vt-ink: #1e1f22; --vt-muted: #707478; --vt-line: #dcdee1; }
+
+body, body *:not([class*="swiper"]):not(svg):not(path) {
+  font-family: "Fira Sans", Arial, sans-serif !important;
+}
+input[type="number"], .mono, code { font-family: "Fira Mono", monospace !important;
+                                    font-variant-numeric: tabular-nums; }
+
+/* Títulos: Montserrat 800 itálica en mayúsculas */
+#Title, h1, h2, .TitleText, .BigTitle {
+  font-family: "VT Montserrat", "Fira Sans", sans-serif !important;
+  font-style: italic; font-weight: 800; text-transform: uppercase; letter-spacing: .01em;
+  color: var(--vt-ink);
+}
+
+/* Botones con radio 6 px, como la guía */
+.ButtonStyleConfirm, .ButtonStyleRegular, .ButtonStyleAlert, button { border-radius: 6px !important; }
+.ButtonStyleConfirm { background-color: var(--vt-accent) !important; border-color: var(--vt-accent) !important; }
+
+/* Uso interno: sin inicio de sesión en nubes de terceros */
+#LoginArea, #OrcaSectionLabel, #OrcaLoginSection, #BambuCloudSection, .BtnShortcut { display: none !important; }
+
+@media (prefers-color-scheme: dark) {
+  #Title, h1, h2, .TitleText, .BigTitle { color: #f2f2f3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
