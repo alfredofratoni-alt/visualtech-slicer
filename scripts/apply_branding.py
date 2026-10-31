@@ -152,6 +152,12 @@ GENERIC = [
     (r"0x009688\b", "0xF4732A"),
     (r"\b0,\s*150,\s*136\b", "244, 115, 42"),
     (r"ImVec4\(0\.00f, 0\.59f, 0\.53f", "ImVec4(0.96f, 0.45f, 0.16f"),
+    # Enlaces de las notificaciones del visor 3D
+    (r"ImVec4\(0, 0\.588, 0\.533", "ImVec4(0.957, 0.451, 0.165"),
+    (r"38\.f / 255\.f, 166\.f / 255\.f, 154\.f / 255\.f", "255.f / 255.f, 122.f / 255.f, 45.f / 255.f"),
+    (r"0\.f, 129\.f / 255\.f, 114\.f / 255\.f", "217.f / 255.f, 98.f / 255.f, 31.f / 255.f"),
+    # Barra superior y texto oscuro escritos como RGB: grafito Visualtech
+    (r"\b38,\s*46,\s*48\b", "31, 32, 35"),
 ]
 patterns = [(re.compile(re.escape(a), re.I), b) for a, b in HEX] + [(re.compile(a), b) for a, b in GENERIC]
 
